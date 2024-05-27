@@ -182,3 +182,14 @@ function nova_resize_thumbnail($attach_id, $size = '', $retina = false) {
         'height' => $src[2],
     );
 }
+
+function nova_resize_image_attachments($attach_id, $size = '', $retina = false) {
+    // Resize the thumbnail
+    $attachment = wp_get_attachment_image_src($attach_id, $size);
+    if (!$attachment) {
+        return '';
+    }
+
+    $imagePosition = get_post_meta($attach_id, 'image_position', true) ?: 'center-top';
+    return nova_resize_thumbnail($attach_id, array('width' => $attachment[1], 'height' => $attachment[is_single() ? 2 : 1], 'crop' => $imagePosition), $retina);
+}
