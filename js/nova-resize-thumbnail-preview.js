@@ -1,25 +1,38 @@
 jQuery(document).ready(function($) {
-    function updateThumbnailPreview() {
-        var thumbnail = $(".nrt-thumbnail");
-        // Check if the thumbnail element exists
-        if (thumbnail.length) {
-            console.log("Thumbnail element found.");
+    var thumbnail = $(".nrt-thumbnail");
+    var radioButtons = $("input[name='image_position']");
+    var futureImageMetaBox = $('#postimagediv .inside')
 
-            var radioButtons = $("input[name='image_position']");
+    function updateThumbnailPreview() {
+        if (thumbnail.length) {
             var selectedPosition = "";
             radioButtons.each(function() {
                 if ($(this).is(":checked")) {
                     selectedPosition = $(this).val();
                 }
             });
-
             thumbnail.css("background-position", selectedPosition.replace("-", " "));
-        } else {
-            console.log("Thumbnail element not found.");
         }
     }
 
-    var radioButtons = $("input[name='image_position']");
+    function updateThumbnailImage() {
+        var futureImage = futureImageMetaBox.find('img');
+        if (futureImage.length) {
+            var futureImageUrl = futureImage.attr('src');
+            thumbnail.css('background-image', 'url(' + futureImageUrl + ')');
+            thumbnail.show();
+        } else {
+            thumbnail.css('background-image', 'url()');
+            thumbnail.hide();
+        }
+    }
+
     radioButtons.change(updateThumbnailPreview);
-    updateThumbnailPreview(); // Initial update
+    updateThumbnailPreview();
+
+    // Detect changes in the postimagediv for featured image updates
+    $('#postimagediv').on('DOMSubtreeModified', function() {
+        updateThumbnailImage();
+        updateThumbnailPreview();
+    });
 });

@@ -7,42 +7,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NRT_Image_Position_Meta_Box {
 
     public function __construct() {
-        add_action('add_meta_boxes_attchment', array($this, 'register_post_meta_box'));
-        add_action('save_post_attachment', array($this, 'save_meta_box_data'));
         add_action('add_meta_boxes', array($this, 'register_post_meta_box'));
+        add_action('add_meta_boxes_attachment', array($this, 'register_attachment_meta_box'));
         add_action('save_post', array($this, 'save_meta_box_data'));
+        add_action('edit_attachment', array($this, 'save_meta_box_data'));
         add_action('admin_enqueue_scripts', array($this, 'nrt_enqueue_thumbnail_preview_script'));
     }
 
     public function nrt_enqueue_thumbnail_preview_script() {
-        wp_enqueue_script('nova-resize-thumbnail-preview', plugin_dir_url(__FILE__) . 'js/nova-resize-thumbnail-preview.js', array('jquery'), '1.0', true);
+        global $post;
+        // Check if we are in the admin area and if the current post type supports thumbnails or is an attachment
+        if (is_admin() && (post_type_supports($post->post_type, 'thumbnail') || $post->post_type == 'attachment')) {
+            wp_enqueue_script('nova-resize-thumbnail-preview', plugin_dir_url(__FILE__) . 'js/nova-resize-thumbnail-preview.js', array('jquery'), '1.0', true);
+        }
     }
 
-    // Register the meta box
-    public function register_attchment_meta_box() {
-        // Get all post types that support thumbnails
-        $post_types = get_post_types(array('supports' => 'thumbnail'));
+    // Register the meta box for attachments
+    public function register_attachment_meta_box() {
         add_meta_box(
             'image_position_meta_box',
             __( 'Image Position', 'nrt' ),
             array( $this, 'render_meta_box' ),
+            'attachment',
             'side',
             'default'
         );
     }
 
-    // Register the meta box
+    // Register the meta box for all post types that support thumbnails
     public function register_post_meta_box() {
-        // Get all post types that support thumbnails
-        $post_types = get_post_types(array('supports' => 'thumbnail'));
-        add_meta_box(
-            'image_position_meta_box',
-            __( 'Image Position', 'nrt' ),
-            array( $this, 'render_meta_box' ),
-            $post_types,
-            'side',
-            'default'
-        );
+        $post_types = get_post_types_by_support('thumbnail');
+        foreach ( $post_types as $post_type ) {
+            add_meta_box(
+                'image_position_meta_box',
+                __( 'Image Position', 'nrt' ),
+                array( $this, 'render_meta_box' ),
+                $post_type,
+                'side',
+                'default'
+            );
+        }
     }
 
     // Render the meta box
@@ -60,7 +64,7 @@ class NRT_Image_Position_Meta_Box {
 
         // Output the meta box content
         echo '<div style="display: flex; flex-direction: column; align-items: center;">';
-        echo '<div class="nrt-thumbnail" style=" width: 256px; height: 256px; margin-bottom: 10px; background-repeat: no-repeat; background-size: cover; background-image: url(\'' . esc_url( wp_get_attachment_image_url(get_post_thumbnail_id($post->ID), 'full')) . '\');"">';
+        echo '<div id="nrt-thumbnail" class="nrt-thumbnail" style="width: 256px; height: 256px; margin-bottom: 10px; background-repeat: no-repeat; background-size: cover; background-image: url(\'' . esc_url( wp_get_attachment_image_url(get_post_thumbnail_id($post->ID), 'full')) . '\');">';
         echo '</div>';
         echo '</div>';
 
@@ -92,7 +96,7 @@ class NRT_Image_Position_Meta_Box {
         }
 
         // Check if the current user has permission to edit the post
-        if (!current_user_can( 'edit_post', $post_id)) {
+        if (!current_user_can( 'edit_post', $post_id) && !current_user_can( 'edit_attachment', $post_id )) {
             return;
         }
 
