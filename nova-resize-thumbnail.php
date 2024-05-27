@@ -22,18 +22,19 @@ class Nova_Resize_Thumbnail {
         add_filter('post_thumbnail_html', array($this, 'nrt_modify_post_thumbnail_html'), 10, 5);
     }
 
-    public function nrt_modify_post_thumbnail_html($html, $postId, $postThumbnailId, $size, $attr) {
+    public function nrt_modify_post_thumbnail_html($html, $post_id, $post_thumbnail_id, $size, $attr) {
         // Get the sizes attribute for responsive images
-        $attachmentSizes = wp_get_attachment_image_sizes($postThumbnailId, $size);
+        $attachmentSizes = wp_get_attachment_image_sizes($post_thumbnail_id, $size);
 
         // Resize the thumbnail
-        $attachment = wp_get_attachment_image_src($postThumbnailId, $size);
+        $attachment = wp_get_attachment_image_src($post_thumbnail_id, $size);
         if (!$attachment) {
             return $html;
         }
 
-        $imagePosition = get_post_meta($postThumbnailId, 'image_position', true);
-        $resizeResult = nova_resize_thumbnail($postThumbnailId, array('width' => $attachment[1], 'height' => $attachment[is_single() ? 2 : 1], 'crop' => $imagePosition), true);
+        $imagePosition = get_post_meta($post_id, 'image_position', true) ?: 'center-top';
+
+        $resizeResult = nova_resize_thumbnail($post_thumbnail_id, array('width' => $attachment[1], 'height' => $attachment[is_single() ? 2 : 1], 'crop' => $imagePosition), true);
 
         if (is_array($resizeResult) && isset($resizeResult['url'], $resizeResult['width'], $resizeResult['height'])) {
             $newHtml = sprintf(
@@ -43,7 +44,7 @@ class Nova_Resize_Thumbnail {
                 intval($resizeResult['height']),
                 $this->nrt_build_attribute_string($attr),
                 esc_attr($attachmentSizes),
-                esc_attr(get_post_meta($postThumbnailId, '_wp_attachment_image_alt', true))
+                esc_attr(get_post_meta($post_thumbnail_id, '_wp_attachment_image_alt', true))
             );
             return $newHtml;
         }
@@ -69,9 +70,12 @@ new Nova_Resize_Thumbnail();
 
 // Define the function to update image position for image attachments
 function nrt_update_all_image_position() {
+
+    $post_types = get_post_types(array('supports' => 'thumbnail'));
+
     // Get all image attachment IDs
     $imageAttachments = get_posts(array(
-        'post_type'      => 'attachment',
+        'post_type'      => $post_types,
         'post_status'    => 'inherit',
         'posts_per_page' => -1,
         'fields'         => 'ids',
