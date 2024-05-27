@@ -7,7 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NRT_Image_Position_Meta_Box {
 
     public function __construct() {
-        add_action('add_meta_boxes', array($this, 'register_meta_box'));
+        add_action('add_meta_boxes_attchment', array($this, 'register_post_meta_box'));
+        add_action('save_post_attachment', array($this, 'save_meta_box_data'));
+        add_action('add_meta_boxes', array($this, 'register_post_meta_box'));
         add_action('save_post', array($this, 'save_meta_box_data'));
         add_action('admin_enqueue_scripts', array($this, 'nrt_enqueue_thumbnail_preview_script'));
     }
@@ -17,7 +19,20 @@ class NRT_Image_Position_Meta_Box {
     }
 
     // Register the meta box
-    public function register_meta_box() {
+    public function register_attchment_meta_box() {
+        // Get all post types that support thumbnails
+        $post_types = get_post_types(array('supports' => 'thumbnail'));
+        add_meta_box(
+            'image_position_meta_box',
+            __( 'Image Position', 'nrt' ),
+            array( $this, 'render_meta_box' ),
+            'side',
+            'default'
+        );
+    }
+
+    // Register the meta box
+    public function register_post_meta_box() {
         // Get all post types that support thumbnails
         $post_types = get_post_types(array('supports' => 'thumbnail'));
         add_meta_box(
