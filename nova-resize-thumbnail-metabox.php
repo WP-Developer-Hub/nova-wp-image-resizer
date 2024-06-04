@@ -26,8 +26,8 @@ class NRT_Image_Position_Meta_Box {
     public function register_attachment_meta_box() {
         add_meta_box(
             'image_position_meta_box',
-            __( 'Image Position', 'nrt' ),
-            array( $this, 'render_meta_box' ),
+            __('Image Position', 'nrt'),
+            array($this, 'render_meta_box'),
             'attachment',
             'side',
             'default'
@@ -36,56 +36,58 @@ class NRT_Image_Position_Meta_Box {
 
     // Register the meta box for all post types that support thumbnails
     public function register_post_meta_box() {
-        $post_types = get_post_types_by_support('thumbnail');
-        foreach ( $post_types as $post_type ) {
-            add_meta_box(
-                'image_position_meta_box',
-                __( 'Image Position', 'nrt' ),
-                array( $this, 'render_meta_box' ),
-                $post_type,
-                'side',
-                'default'
-            );
-        }
+        add_meta_box(
+            'image_position_meta_box',
+            __('Image Position', 'nrt'),
+            array($this, 'render_meta_box'),
+            $post_type,
+            'side',
+            'default'
+        );
     }
 
     // Render the meta box
     public function render_meta_box( $post ) {
-        $image_position = array(
-            'left-top' => 'Left Top', 'center-top' => 'Center Top', 'right-top' => 'Right Top',
-            'left-center' => 'Left Center', 'center-center' => 'Center Center', 'right-center' => 'Right Center',
-            'left-bottom' => 'Left Bottom', 'center-bottom' => 'Center Bottom', 'right-bottom' => 'Right Bottom'
-        );
+        // Check if the post type is 'attachment' and it is an image or supports a post thumbnail
+        if (wp_attachment_is_image($post) || post_type_supports($post, 'thumbnail')) {
+            $image_position = array(
+                'left-top' => 'Left Top', 'center-top' => 'Center Top', 'right-top' => 'Right Top',
+                'left-center' => 'Left Center', 'center-center' => 'Center Center', 'right-center' => 'Right Center',
+                'left-bottom' => 'Left Bottom', 'center-bottom' => 'Center Bottom', 'right-bottom' => 'Right Bottom'
+            );
 
-        // Retrieve the current crop location if it exists
-        $current_image_position = get_post_meta($post->ID, 'image_position', true) ?: 'center-top';
+            // Retrieve the current crop location if it exists
+            $current_image_position = get_post_meta($post->ID, 'image_position', true) ?: 'center-top';
 
-        wp_nonce_field('save_image_position', 'image_position_nonce');
+            wp_nonce_field('save_image_position', 'image_position_nonce');
 
-        // Output the meta box content
-        echo '<div style="display: flex; flex-direction: column; align-items: center;">';
-        echo '<div id="nrt-thumbnail" class="nrt-thumbnail" style="width: 256px; height: 256px; margin-bottom: 10px; background-repeat: no-repeat; background-size: cover; background-image: url(\'' . esc_url( wp_get_attachment_image_url(get_post_thumbnail_id($post->ID), 'full')) . '\');">';
-        echo '</div>';
-        echo '</div>';
+            // Output the meta box content
+            echo '<div style="display: flex; flex-direction: column; align-items: center;">';
+            echo '<div id="nrt-thumbnail" class="nrt-thumbnail" style="width: 256px; height: 256px; margin-bottom: 10px; background-repeat: no-repeat; background-size: cover; background-image: url(\'' . esc_url( wp_get_attachment_image_url(get_post_thumbnail_id($post->ID), 'full')) . '\');">';
+            echo '</div>';
+            echo '</div>';
 
-        echo '<table align="center" style="border: 1px solid black; padding: 0px; border-collapse: collapse;">';
-        $i = 0;
-        foreach ( $image_position as $position => $label ) {
-            $checked = ( $position === $current_image_position ) ? 'checked' : '';
-            if ($i % 3 === 0) {
-                echo '<tr>';
+            echo '<table align="center" style="border: 1px solid black; padding: 0px; border-collapse: collapse;">';
+            $i = 0;
+            foreach ( $image_position as $position => $label ) {
+                $checked = ( $position === $current_image_position ) ? 'checked' : '';
+                if ($i % 3 === 0) {
+                    echo '<tr>';
+                }
+                echo '<td style="border: 1px solid black; padding: 0px; margin: 0px; height: 85px; width: 85px; vertical-align: middle; text-align: center;"><label class="screen-reader-text"> ' . esc_html( $label ) . '</label><input type="radio" name="image_position" value="' . esc_attr( $position ) . '" ' . $checked . '></td>';
+                $i++;
+                if ($i % 3 === 0) {
+                    echo '</tr>';
+                }
             }
-            echo '<td style="border: 1px solid black; padding: 0px; margin: 0px; height: 85px; width: 85px; vertical-align: middle; text-align: center;"><label class="screen-reader-text"> ' . esc_html( $label ) . '</label><input type="radio" name="image_position" value="' . esc_attr( $position ) . '" ' . $checked . '></td>';
-            $i++;
-            if ($i % 3 === 0) {
+            // Close the row if the last row is not completed
+            if ($i % 3 !== 0) {
                 echo '</tr>';
             }
+            echo '</table>';
+        } else {
+            echo '<p>' . __( 'This feature is not available for this post/attachment.', 'nrt' ) . '</p>';
         }
-        // Close the row if the last row is not completed
-        if ($i % 3 !== 0) {
-            echo '</tr>';
-        }
-        echo '</table>';
     }
 
     // Save the selected crop location
